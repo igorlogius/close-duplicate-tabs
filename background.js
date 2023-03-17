@@ -2,13 +2,16 @@
 
 const tabdata = new Map();
 
+const delayed_updateBA_timeout = 500;
+let delayed_updateBA_timerId;
+
 let dupTabIds = 0;
 
-async function onBAClicked() {
-  delDups();
-  browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "0" });
-  browser.browserAction.setBadgeBackgroundColor({ color: "green" });
+async function delayed_updateBA() {
+  clearTimeout(delayed_updateBA_timerId);
+  delayed_updateBA_timerId = setTimeout(async () => {
+    updateBA();
+  }, delayed_updateBA_timeout);
 }
 
 function getDups() {
@@ -29,7 +32,8 @@ function getDups() {
           ([, v]) => t0.url === v.url && t0.cookieStoreId === v.cookieStoreId
         )
         .sort(([, av], [, bv]) => {
-          return av.lastAccessed - bv.lastAccessed;
+          //return av.lastAccessed - bv.lastAccessed;
+          return av.created - bv.created;
         })
         .map(([k]) => k);
 
@@ -62,26 +66,21 @@ function updateBA() {
   dupTabIds = getDups();
   if (dupTabIds.length > 0) {
     browser.browserAction.enable();
-    browser.browserAction.setBadgeText({
-      text: "" + dupTabIds.length,
-    });
-    browser.browserAction.setTitle({
-      title: "Close All " + dupTabIds.length + " Duplicates",
-    });
-    browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
+    browser.browserAction.setBadgeText({text: "" + dupTabIds.length});
+    browser.browserAction.setTitle({ title: "Close All " + dupTabIds.length + " Duplicates"});
   } else {
     browser.browserAction.disable();
     browser.browserAction.setTitle({ title: "No Duplicates to Close" });
-    browser.browserAction.setBadgeText({ text: "0" });
-    browser.browserAction.setBadgeBackgroundColor({ color: "green" });
+    browser.browserAction.setBadgeText({ text: "" });
   }
 }
 
 // init button + popuplate tabdata cache
 (async () => {
   browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "0" });
-  browser.browserAction.setBadgeBackgroundColor({ color: "green" });
+  browser.browserAction.setBadgeText({ text: "" });
+  browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
+  //browser.browserAction.setBadgeBackgroundColor({ color: "green" });
   browser.browserAction.setTitle({ title: "No Duplicates to Close" });
 
   (await browser.tabs.query({
@@ -94,9 +93,10 @@ function updateBA() {
       url: t.url,
       cs: t.cookieStoreId,
       lastAccessed: t.lastAccessed,
+      created: Date.now(),
     });
   });
-  updateBA();
+  delayed_updateBA();
 })();
 
 // register listeners
@@ -105,13 +105,13 @@ function updateBA() {
 browser.tabs.onUpdated.addListener(
   (tabId, changeInfo, t) => {
     if (typeof changeInfo.url === "string") {
-      tabdata.set(t.id, {
-        url: t.url,
-        cs: t.cookieStoreId,
-        lastAccessed: t.lastAccessed,
-      });
+      if(tabdata.has(t.id)){
+	      let tmp = tabdata.get(t.id);
+	      tmp.url = changeInfo.url;
+	      tabdata.set(t.id, tmp);
+      }
+      delayed_updateBA();
     }
-    updateBA();
   },
   { properties: ["url"] }
 );
@@ -122,8 +122,9 @@ browser.tabs.onCreated.addListener((t) => {
     url: t.url,
     cs: t.cookieStoreId,
     lastAccessed: t.lastAccessed,
+    created: Date.now(),
   });
-  updateBA();
+  delayed_updateBA();
 });
 
 // update the lastAccessed timestamp 
@@ -145,6 +146,5 @@ browser.tabs.onRemoved.addListener((tabId) => {
 browser.browserAction.onClicked.addListener(() => {
   delDups();
   browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "0" });
-  browser.browserAction.setBadgeBackgroundColor({ color: "green" });
+  browser.browserAction.setBadgeText({ text: "" });
 });

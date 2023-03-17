@@ -1,0 +1,21 @@
+{
+  "author": "igorlogius",
+  "homepage_url": "https://github.com/igorlogius/close-all-duplicate-tabs",
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "browser_action": {
+  },
+  "icons": {
+	  "128": "icon.png"
+  },
+  "manifest_version": 2,
+  "name": "Close All Duplicate Tabs",
+  "permissions": [
+    "cookies",
+    "tabs"
+  ],
+  "version": "1.0.0"
+}

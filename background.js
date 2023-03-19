@@ -1,18 +1,28 @@
 /* global browser */
 
 const tabdata = new Map();
-
-let delayed_updateBA_timerId;
-
+let delayed_updateBA_timerId = null;
 let dupTabIds = [];
 
 async function delayed_updateBA(delay = 700) {
-  clearTimeout(delayed_updateBA_timerId);
+  if (delayed_updateBA_timerId !== null) {
+    clearTimeout(delayed_updateBA_timerId);
+  }
+
+  /* 
+    this might be more correct ... but the flashing is annoying 
+    browser.browserAction.disable();
+    browser.browserAction.setTitle({ title: "working" });
+    browser.browserAction.setBadgeText({ text: "" });
+    */
+
   delayed_updateBA_timerId = setTimeout(async () => {
     updateBA();
+    delayed_updateBA_timerId = null;
   }, delay);
 }
 
+//
 function getDups() {
   const dups = new Map();
   let done = [];
@@ -28,10 +38,12 @@ function getDups() {
 
       t0_dups = [...tabdata]
         .filter(
-          ([, v]) => t0.url === v.url && t0.cookieStoreId === v.cookieStoreId
+          ([, v]) =>
+            t0.url === v.url &&
+            t0.cookieStoreId === v.cookieStoreId &&
+            v.status !== "loading" // exclude loading tabs
         )
         .sort(([, av], [, bv]) => {
-          //return av.lastAccessed - bv.lastAccessed;
           return av.created - bv.created;
         })
         .map(([k]) => k);
@@ -53,95 +65,80 @@ function getDups() {
   return toClose;
 }
 
-// delete duplicates 
+// delete duplicates
 function delDups() {
   if (dupTabIds.length > 0) {
     browser.tabs.remove(dupTabIds);
   }
 }
 
-// 
+// update browserAction 
 function updateBA() {
   dupTabIds = getDups();
   if (dupTabIds.length > 0) {
     browser.browserAction.enable();
-    browser.browserAction.setBadgeText({text: "" + dupTabIds.length});
-    browser.browserAction.setTitle({ title: "Close All " + dupTabIds.length + " Duplicates"});
+    browser.browserAction.setBadgeText({ text: "" + dupTabIds.length });
+    browser.browserAction.setTitle({ title: "Close Duplicates" });
   } else {
     browser.browserAction.disable();
-    browser.browserAction.setTitle({ title: "No Duplicates to Close" });
+    browser.browserAction.setTitle({ title: "" });
     browser.browserAction.setBadgeText({ text: "" });
   }
 }
 
-// init button + popuplate tabdata cache
+// init browserAction + popuplate tabdata cache
 (async () => {
   browser.browserAction.disable();
   browser.browserAction.setBadgeText({ text: "" });
   browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
-  browser.browserAction.setTitle({ title: "No Duplicates to Close" });
+  browser.browserAction.setTitle({ title: "" });
 
-  (await browser.tabs.query({
-      currentWindow: true, 
+  (
+    await browser.tabs.query({
       hidden: false,
       pinned: false,
     })
   ).forEach((t) => {
-	//if(/^https?:/.test(t.url)){
     tabdata.set(t.id, {
+      status: t.status,
       url: t.url,
       cs: t.cookieStoreId,
-      //lastAccessed: t.lastAccessed,
       created: Date.now(),
     });
-	//}
   });
   delayed_updateBA();
 })();
 
 // register listeners
 
-// update cache 
-/*
+// update cache
 browser.tabs.onUpdated.addListener(
   (tabId, changeInfo, t) => {
-	if(/^https?:/.test(changeInfo.url)){
-        if(tabdata.has(t.id)){
-	      let tmp = tabdata.get(t.id);
-	      tmp.url = changeInfo.url;
-	      tabdata.set(t.id, tmp);
+    if (tabdata.has(t.id)) {
+      let tmp = tabdata.get(t.id);
+      if (typeof changeInfo.status === "string") {
+        tmp.status = changeInfo.status;
+      }
+      if (typeof changeInfo.url === "string") {
+        tmp.url = changeInfo.url;
+      }
+      tabdata.set(t.id, tmp);
       delayed_updateBA();
-       }
     }
   },
-  { properties: ["url"] }
+  { properties: ["status", "url"] }
 );
-*/
 
-// update cache 
+// update cache
 browser.tabs.onCreated.addListener((t) => {
-
-	//if(/^https?:/.test(t.url)){
-	  tabdata.set(t.id, {
-	    url: t.url,
-	    cs: t.cookieStoreId,
-	    //lastAccessed: t.lastAccessed,
-	    created: Date.now(),
-	  });
-	  delayed_updateBA(5000);
-	//}
+  tabdata.set(t.id, {
+    url: t.url,
+    cs: t.cookieStoreId,
+    created: Date.now(),
+    status: "created",
+  });
+  delayed_updateBA();
 });
-
-// update the lastAccessed timestamp 
-/*
-browser.tabs.onActivated.addListener((info) => {
-	if(tabdata.has(info.tabId)){
-		let tmp = tabdata.get(info.tabId);
-		tmp.lastAccessed = Date.now();
-		tabdata.set(info.tabId, tmp);
-	}
-});
-*/
 
 // remove tab from cache
 browser.tabs.onRemoved.addListener((tabId) => {
@@ -153,21 +150,10 @@ browser.tabs.onRemoved.addListener((tabId) => {
 
 // tigger deletion
 browser.browserAction.onClicked.addListener(() => {
-  delDups();
-  browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "" });
-});
-
-
-browser.webNavigation.onBeforeNavigate.addListener( (details) => {
-	if(details.frameId === 0) {
-		//if(/^https?:/.test(details.url)){
-			if(tabdata.has(details.tabId)){
-				let tmp = tabdata.get(details.tabId);
-				tmp.url = details.url;
-				tabdata.set(details.tabId, tmp);
-				delayed_updateBA();
-			}
-		//}
-	}
+  // clear action is only available when last update is done
+  if (delayed_updateBA_timerId === null) {
+    delDups();
+    browser.browserAction.disable();
+    browser.browserAction.setBadgeText({ text: "" });
+  }
 });

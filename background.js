@@ -1,7 +1,9 @@
 /* global browser */
 
+/*
 const manifest = browser.runtime.getManifest();
 const extname = manifest.name;
+*/
 
 const tabdata = new Map();
 let delayed_updateBA_timerId = null;
@@ -75,7 +77,7 @@ function delDups() {
   }
 }
 
-// update browserAction 
+// update browserAction
 function updateBA() {
   dupTabIds = getDups();
   if (dupTabIds.length > 0) {

@@ -1,5 +1,8 @@
 /* global browser */
 
+const manifest = browser.runtime.getManifest();
+const extname = manifest.name;
+
 const tabdata = new Map();
 let delayed_updateBA_timerId = null;
 let dupTabIds = [];
@@ -78,10 +81,8 @@ function updateBA() {
   if (dupTabIds.length > 0) {
     browser.browserAction.enable();
     browser.browserAction.setBadgeText({ text: "" + dupTabIds.length });
-    browser.browserAction.setTitle({ title: "Close Duplicates" });
   } else {
     browser.browserAction.disable();
-    browser.browserAction.setTitle({ title: "" });
     browser.browserAction.setBadgeText({ text: "" });
   }
 }
@@ -91,7 +92,6 @@ function updateBA() {
   browser.browserAction.disable();
   browser.browserAction.setBadgeText({ text: "" });
   browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
-  browser.browserAction.setTitle({ title: "" });
 
   (
     await browser.tabs.query({

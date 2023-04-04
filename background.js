@@ -49,7 +49,8 @@ function getDups() {
             v.status !== "loading" // exclude loading tabs
         )
         .sort(([, av], [, bv]) => {
-          return av.created - bv.created;
+          //return av.created - bv.created;
+          return bv.created - av.created;
         })
         .map(([k]) => k);
 
@@ -151,11 +152,19 @@ browser.tabs.onRemoved.addListener((tabId) => {
 });
 
 // tigger deletion
-browser.browserAction.onClicked.addListener(() => {
+browser.browserAction.onClicked.addListener((tab, info) => {
   // clear action is only available when last update is done
   if (delayed_updateBA_timerId === null) {
     delDups();
     browser.browserAction.disable();
     browser.browserAction.setBadgeText({ text: "" });
+  }
+});
+
+browser.tabs.onActivated.addListener((activeInfo) => {
+  if (tabdata.has(tabId)) {
+    const tmp = tabdata.get(activeInfo.id);
+    tmp.created = Date.now();
+    tabdata.set(t.id, tmp);
   }
 });

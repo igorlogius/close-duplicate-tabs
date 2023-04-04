@@ -1,12 +1,13 @@
-Shows the total amount of duplicate tabs and allows to quickly and easily close them
-- Leave the tabs open which have been created first.
+Shows the total amount of duplicate tabs and allows to quickly and easily close
+them - Leaving the last accessed or if never access the last created (newest) tabs open.
 
 <b>Usage/Features:</b>
 <ul>
-	<li>Show number of duplicates in the toolbar button badge</li>
-	<li>Close all duplicates tabs, leaving the which have been created first open</li>
+  <li>Show number of duplicates in the toolbar button badge</li>
+  <li>
+    Close all duplicates tabs, leaving the last accessed or if never access the last created (newest) tabs open.
+  </li>
 </ul>
-
 
 <b>Notes:</b>
 <ol>

@@ -13,5 +13,5 @@
   "manifest_version": 2,
   "name": "Close All Duplicate Tabs",
   "permissions": ["cookies", "tabs"],
-  "version": "1.0.5"
+  "version": "1.0.6"
 }

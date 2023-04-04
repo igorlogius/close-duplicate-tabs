@@ -152,7 +152,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
 });
 
 // tigger deletion
-browser.browserAction.onClicked.addListener((tab, info) => {
+browser.browserAction.onClicked.addListener((/*tab, info*/) => {
   // clear action is only available when last update is done
   if (delayed_updateBA_timerId === null) {
     delDups();
@@ -162,9 +162,9 @@ browser.browserAction.onClicked.addListener((tab, info) => {
 });
 
 browser.tabs.onActivated.addListener((activeInfo) => {
-  if (tabdata.has(tabId)) {
-    const tmp = tabdata.get(activeInfo.id);
+  if (tabdata.has(activeInfo.tabId)) {
+    const tmp = tabdata.get(activeInfo.tabId);
     tmp.created = Date.now();
-    tabdata.set(t.id, tmp);
+    tabdata.set(activeInfo.tabId, tmp);
   }
 });

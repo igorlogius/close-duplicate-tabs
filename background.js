@@ -5,6 +5,13 @@ const manifest = browser.runtime.getManifest();
 const extname = manifest.name;
 */
 
+let byCreated = false;
+
+async function getFromStorage(type, id, fallback) {
+  let tmp = await browser.storage.local.get(id);
+  return typeof tmp[id] === type ? tmp[id] : fallback;
+}
+
 const tabdata = new Map();
 let delayed_updateBA_timerId = null;
 let dupTabIds = [];
@@ -49,8 +56,10 @@ function getDups() {
             v.status !== "loading" // exclude loading tabs
         )
         .sort(([, av], [, bv]) => {
-          //return av.created - bv.created;
-          return bv.created - av.created;
+          if (byCreated) {
+            return av.ts - bv.ts;
+          }
+          return bv.ts - av.ts;
         })
         .map(([k]) => k);
 
@@ -106,7 +115,7 @@ function updateBA() {
       status: t.status,
       url: t.url,
       cs: t.cookieStoreId,
-      created: Date.now(),
+      ts: byCreated ? Date.now() : t.lastAccessed,
     });
   });
   delayed_updateBA();
@@ -137,7 +146,7 @@ browser.tabs.onCreated.addListener((t) => {
   tabdata.set(t.id, {
     url: t.url,
     cs: t.cookieStoreId,
-    created: Date.now(),
+    ts: Date.now(),
     status: "created",
   });
   delayed_updateBA();
@@ -162,9 +171,13 @@ browser.browserAction.onClicked.addListener((/*tab, info*/) => {
 });
 
 browser.tabs.onActivated.addListener((activeInfo) => {
-  if (tabdata.has(activeInfo.tabId)) {
+  if (!byCreated && tabdata.has(activeInfo.tabId)) {
     const tmp = tabdata.get(activeInfo.tabId);
-    tmp.created = Date.now();
+    tmp.ts = Date.now();
     tabdata.set(activeInfo.tabId, tmp);
   }
+});
+
+browser.storage.onChanged.addListener(async () => {
+  byCreated = await getFromStorage("boolean", "keepoldest", false);
 });

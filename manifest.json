@@ -11,7 +11,10 @@
     "128": "icon.png"
   },
   "manifest_version": 2,
+  "options_ui": {
+    "page": "options.html"
+  },
   "name": "Close All Duplicate Tabs",
-  "permissions": ["cookies", "tabs"],
-  "version": "1.0.6"
+  "permissions": ["storage", "cookies", "tabs"],
+  "version": "1.0.7"
 }

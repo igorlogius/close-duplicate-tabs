@@ -1,10 +1,5 @@
 /* global browser */
 
-/*
-const manifest = browser.runtime.getManifest();
-const extname = manifest.name;
-*/
-
 let byCreated = false;
 
 async function getFromStorage(type, id, fallback) {
@@ -21,16 +16,26 @@ async function delayed_updateBA(delay = 700) {
     clearTimeout(delayed_updateBA_timerId);
   }
 
-  /* 
-    this might be more correct ... but the flashing is annoying 
-    browser.browserAction.disable();
-    browser.browserAction.setTitle({ title: "working" });
-    browser.browserAction.setBadgeText({ text: "" });
-    */
+  /**/
+  // disable button while processing
+  browser.browserAction.disable();
+  browser.browserAction.setBadgeBackgroundColor({ color: "black" });
+  browser.browserAction.setBadgeText({ text: "⌛" });
+  //browser.browserAction.setBadgeText({ text: "☕" });
+  /**/
 
   delayed_updateBA_timerId = setTimeout(async () => {
-    updateBA();
-    delayed_updateBA_timerId = null;
+    const loading_tabs = await browser.tabs.query({
+      hidden: false,
+      pinned: false,
+      status: "loading",
+    });
+    if (loading_tabs.length === 0) {
+      updateBA();
+      delayed_updateBA_timerId = null;
+    } else {
+      delayed_updateBA();
+    }
   }, delay);
 }
 
@@ -93,18 +98,19 @@ function updateBA() {
   if (dupTabIds.length > 0) {
     browser.browserAction.enable();
     browser.browserAction.setBadgeText({ text: "" + dupTabIds.length });
+    browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
   } else {
     browser.browserAction.disable();
-    browser.browserAction.setBadgeText({ text: "" });
+    browser.browserAction.setBadgeText({ text: "0" });
+    browser.browserAction.setBadgeBackgroundColor({ color: "limegreen" });
   }
 }
 
 // init browserAction + popuplate tabdata cache
 (async () => {
   browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "" });
-  browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
-
+  browser.browserAction.setBadgeText({ text: "0" });
+  browser.browserAction.setBadgeBackgroundColor({ color: "limegreen" });
   (
     await browser.tabs.query({
       hidden: false,
@@ -163,10 +169,10 @@ browser.tabs.onRemoved.addListener((tabId) => {
 // tigger deletion
 browser.browserAction.onClicked.addListener((/*tab, info*/) => {
   // clear action is only available when last update is done
+  // not strictly necessary, since we disable the button ... but it doesnt hurt
   if (delayed_updateBA_timerId === null) {
     delDups();
-    browser.browserAction.disable();
-    browser.browserAction.setBadgeText({ text: "" });
+    browser.browserAction.setBadgeText({ text: "0" });
   }
 });
 

@@ -16,5 +16,5 @@
   },
   "name": "Close All Duplicate Tabs",
   "permissions": ["storage", "cookies", "tabs"],
-  "version": "1.0.8"
+  "version": "1.0.9"
 }

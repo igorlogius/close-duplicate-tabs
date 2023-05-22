@@ -101,16 +101,14 @@ function updateBA() {
     browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
   } else {
     browser.browserAction.disable();
-    browser.browserAction.setBadgeText({ text: "0" });
-    browser.browserAction.setBadgeBackgroundColor({ color: "limegreen" });
+    browser.browserAction.setBadgeText({ text: "" });
   }
 }
 
 // init browserAction + popuplate tabdata cache
 (async () => {
   browser.browserAction.disable();
-  browser.browserAction.setBadgeText({ text: "0" });
-  browser.browserAction.setBadgeBackgroundColor({ color: "limegreen" });
+  browser.browserAction.setBadgeText({ text: "" });
   (
     await browser.tabs.query({
       hidden: false,

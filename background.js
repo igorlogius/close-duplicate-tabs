@@ -105,10 +105,15 @@ function updateBA() {
   }
 }
 
-// init browserAction + popuplate tabdata cache
+async function syncMemory() {
+  byCreated = await getFromStorage("boolean", "keepoldest", false);
+}
+
+// init browserAction, load/sync local vars + populate tabdata cache
 (async () => {
   browser.browserAction.disable();
   browser.browserAction.setBadgeText({ text: "" });
+  await syncMemory();
   (
     await browser.tabs.query({
       hidden: false,
@@ -182,6 +187,4 @@ browser.tabs.onActivated.addListener((activeInfo) => {
   }
 });
 
-browser.storage.onChanged.addListener(async () => {
-  byCreated = await getFromStorage("boolean", "keepoldest", false);
-});
+browser.storage.onChanged.addListener(syncMemory);

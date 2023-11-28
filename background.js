@@ -16,13 +16,8 @@ async function delayed_updateBA(delay = 700) {
     clearTimeout(delayed_updateBA_timerId);
   }
 
-  /**/
   // disable button while processing
   browser.browserAction.disable();
-  browser.browserAction.setBadgeBackgroundColor({ color: "black" });
-  browser.browserAction.setBadgeText({ text: "⌛" });
-  //browser.browserAction.setBadgeText({ text: "☕" });
-  /**/
 
   delayed_updateBA_timerId = setTimeout(async () => {
     const loading_tabs = await browser.tabs.query({
@@ -98,7 +93,6 @@ function updateBA() {
   if (dupTabIds.length > 0) {
     browser.browserAction.enable();
     browser.browserAction.setBadgeText({ text: "" + dupTabIds.length });
-    browser.browserAction.setBadgeBackgroundColor({ color: "orange" });
   } else {
     browser.browserAction.disable();
     browser.browserAction.setBadgeText({ text: "" });
@@ -113,6 +107,7 @@ async function syncMemory() {
 (async () => {
   browser.browserAction.disable();
   browser.browserAction.setBadgeText({ text: "" });
+  browser.browserAction.setBadgeBackgroundColor({ color: "orange" }); // default color
   await syncMemory();
   (
     await browser.tabs.query({

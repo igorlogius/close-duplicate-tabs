@@ -17,5 +17,5 @@
   "name": "Close Duplicate Tabs",
   "description": "Shows number of duplicate tabs and allows to close them",
   "permissions": ["storage", "cookies", "tabs"],
-  "version": "1.0.11"
+  "version": "1.0.12"
 }

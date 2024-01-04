@@ -1,6 +1,10 @@
 Shows the total amount of duplicate tabs and allows to quickly and easily close
 them
 
+<b>Short Demo Video:</b>
+
+https://github.com/igorlogius/close-duplicate-tabs/assets/67047467/0e467a95-c29d-4627-8507-c0529618b797
+
 <b>Usage/Features:</b>
 <ul>
   <li>Show number of duplicates in the toolbar button badge</li>

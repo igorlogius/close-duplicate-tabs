@@ -7,6 +7,13 @@
   "browser_action": {
     "default_area": "navbar"
   },
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+C"
+      }
+    }
+  },
   "icons": {
     "128": "icon.png"
   },
@@ -15,7 +22,7 @@
     "page": "options.html"
   },
   "name": "Close Duplicate Tabs",
-  "description": "Shows number of duplicate tabs and allows to close them",
+  "description": "Shows count of duplicate tabs and close them quickly",
   "permissions": ["storage", "cookies", "tabs"],
-  "version": "1.0.12"
+  "version": "1.0.13"
 }

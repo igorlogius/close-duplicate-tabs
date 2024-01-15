@@ -1,5 +1,5 @@
 Shows the total amount of duplicate tabs and allows to quickly and easily close
-them
+them - Same URLs in different containers are not treated as duplicates.
 
 <b>Short Demo Video:</b>
 

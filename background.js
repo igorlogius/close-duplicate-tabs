@@ -1,6 +1,9 @@
 /* global browser */
 
 let byCreated = false;
+let ignoreactive = false;
+
+let activeTabId = -1;
 
 async function getFromStorage(type, id, fallback) {
   let tmp = await browser.storage.local.get(id);
@@ -76,8 +79,17 @@ function getDups() {
       toClose = toClose.concat(v.slice(1));
     }
   }
-  toClose = [...new Set(toClose)];
-  return toClose;
+  toClose = new Set(toClose);
+
+  // remove active Tab
+
+  if (ignoreactive) {
+    if (toClose.has(activeTabId)) {
+      toClose.delete(activeTabId);
+    }
+  }
+
+  return [...toClose];
 }
 
 // delete duplicates
@@ -101,6 +113,7 @@ function updateBA() {
 
 async function syncMemory() {
   byCreated = await getFromStorage("boolean", "keepoldest", false);
+  ignoreactive = await getFromStorage("boolean", "ignoreactive", false);
 }
 
 // init browserAction, load/sync local vars + populate tabdata cache
@@ -183,3 +196,10 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 });
 
 browser.storage.onChanged.addListener(syncMemory);
+
+function handleActivated(activeInfo) {
+  console.log("Tab " + activeInfo.tabId + " was activated");
+
+  activeTabId = activeInfo.tabId;
+}
+browser.tabs.onActivated.addListener(handleActivated);

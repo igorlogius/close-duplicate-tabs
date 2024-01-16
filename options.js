@@ -30,7 +30,7 @@ function onChange(evt) {
   browser.storage.local.set(obj).catch(console.error);
 }
 
-["keepoldest", "ignoreactive"].map((id) => {
+["keepoldest", "ignorehighlighted"].map((id) => {
   browser.storage.local
     .get(id)
     .then((obj) => {

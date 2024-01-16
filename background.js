@@ -1,9 +1,9 @@
 /* global browser */
 
 let byCreated = false;
-let ignoreactive = false;
+let ignorehighlighted = false;
 
-let activeTabId = -1;
+let highlightedTabs = [];
 
 async function getFromStorage(type, id, fallback) {
   let tmp = await browser.storage.local.get(id);
@@ -83,9 +83,12 @@ function getDups() {
 
   // remove active Tab
 
-  if (ignoreactive) {
-    if (toClose.has(activeTabId)) {
-      toClose.delete(activeTabId);
+  if (ignorehighlighted) {
+    for (const htid of highlightedTabs) {
+      if (toClose.has(htid)) {
+        toClose.delete(htid);
+        console.debug("ignored ", htid);
+      }
     }
   }
 
@@ -113,7 +116,11 @@ function updateBA() {
 
 async function syncMemory() {
   byCreated = await getFromStorage("boolean", "keepoldest", false);
-  ignoreactive = await getFromStorage("boolean", "ignoreactive", false);
+  ignorehighlighted = await getFromStorage(
+    "boolean",
+    "ignorehighlighted",
+    false
+  );
 }
 
 // init browserAction, load/sync local vars + populate tabdata cache
@@ -197,9 +204,13 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 
 browser.storage.onChanged.addListener(syncMemory);
 
-function handleActivated(activeInfo) {
-  console.log("Tab " + activeInfo.tabId + " was activated");
-
-  activeTabId = activeInfo.tabId;
+function handleHighlighted(highlightInfo) {
+  console.log("Highlighted tabs: " + highlightInfo.tabIds);
+  if (Array.isArray(highlightInfo.tabIds)) {
+    highlightedTabs = highlightInfo.tabIds;
+  } else {
+    highlightedTabs = [];
+  }
+  delayed_updateBA();
 }
-browser.tabs.onActivated.addListener(handleActivated);
+browser.tabs.onHighlighted.addListener(handleHighlighted);

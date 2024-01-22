@@ -43,41 +43,46 @@ function getDups() {
   let done = [];
 
   for (const [tabId, t0] of tabdata) {
-    if (!done.includes(tabId)) {
+    if (done.includes(tabId)) {
+      continue;
+    } else {
       done.push(tabId);
+    }
 
-      if (dups.has(t0.url)) {
-        dups.set(t0.url, []);
+    if (!dups.has(t0.cs + t0.url)) {
+      dups.set(t0.cs + t0.url, []);
+    }
+    let t0_dups = dups.get(t0.cs + t0.url);
+
+    for (const [vtabId, v] of tabdata) {
+      if (
+        vtabId !== tabId &&
+        t0.url === v.url &&
+        t0.cs === v.cs &&
+        t0.status !== "loading"
+      ) {
+        t0_dups.push(v);
       }
-      let t0_dups = dups.get(t0.url);
+    }
 
-      t0_dups = [...tabdata]
-        .filter(
-          ([, v]) =>
-            t0.url === v.url &&
-            t0.cookieStoreId === v.cookieStoreId &&
-            v.status !== "loading" // exclude loading tabs
-        )
-        .sort(([, av], [, bv]) => {
+    if (t0_dups.length > 0) {
+      t0_dups = t0_dups
+        .sort((av, bv) => {
           if (byCreated) {
             return av.ts - bv.ts;
           }
           return bv.ts - av.ts;
         })
-        .map(([k]) => k);
+        .map((e) => e.id);
 
-      if (t0_dups.length > 0) {
-        done = done.concat(t0_dups);
-      }
-      dups.set(t0.url, t0_dups);
+      done = done.concat(t0_dups);
     }
+    dups.set(t0.cs + t0.url, t0_dups);
   }
 
   let toClose = [];
   for (const [, v] of dups) {
-    if (v.length > 1) {
-      toClose = toClose.concat(v.slice(1));
-    }
+    toClose = toClose.concat(v);
   }
   toClose = new Set(toClose);
 
@@ -87,7 +92,6 @@ function getDups() {
     for (const htid of highlightedTabs) {
       if (toClose.has(htid)) {
         toClose.delete(htid);
-        console.debug("ignored ", htid);
       }
     }
   }
@@ -136,6 +140,7 @@ async function syncMemory() {
     })
   ).forEach((t) => {
     tabdata.set(t.id, {
+      id: t.id,
       status: t.status,
       url: t.url,
       cs: t.cookieStoreId,
@@ -154,9 +159,13 @@ browser.tabs.onUpdated.addListener(
       let tmp = tabdata.get(t.id);
       if (typeof changeInfo.status === "string") {
         tmp.status = changeInfo.status;
+        tmp.cs = t.cookieStoreId;
+        tmp.id = t.id;
       }
       if (typeof changeInfo.url === "string") {
         tmp.url = changeInfo.url;
+        tmp.cs = t.cookieStoreId;
+        tmp.id = t.id;
       }
       tabdata.set(t.id, tmp);
       delayed_updateBA();
@@ -168,6 +177,7 @@ browser.tabs.onUpdated.addListener(
 // update cache
 browser.tabs.onCreated.addListener((t) => {
   tabdata.set(t.id, {
+    id: t.id,
     url: t.url,
     cs: t.cookieStoreId,
     ts: Date.now(),
@@ -181,7 +191,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
   if (tabdata.has(tabId)) {
     tabdata.delete(tabId);
   }
-  updateBA();
+  delayed_updateBA();
 });
 
 // tigger deletion
@@ -196,7 +206,7 @@ browser.browserAction.onClicked.addListener((/*tab, info*/) => {
 
 browser.tabs.onActivated.addListener((activeInfo) => {
   if (!byCreated && tabdata.has(activeInfo.tabId)) {
-    const tmp = tabdata.get(activeInfo.tabId);
+    let tmp = tabdata.get(activeInfo.tabId);
     tmp.ts = Date.now();
     tabdata.set(activeInfo.tabId, tmp);
   }
@@ -205,7 +215,6 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 browser.storage.onChanged.addListener(syncMemory);
 
 function handleHighlighted(highlightInfo) {
-  console.log("Highlighted tabs: " + highlightInfo.tabIds);
   if (Array.isArray(highlightInfo.tabIds)) {
     highlightedTabs = highlightInfo.tabIds;
   } else {

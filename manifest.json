@@ -12,6 +12,12 @@
       "suggested_key": {
         "default": "Ctrl+Alt+C"
       }
+    },
+    "ignore-set": {
+      "description": "Ignore selected tabs"
+    },
+    "ignore-clear": {
+      "description": "Clear ignored tabs"
     }
   },
   "icons": {
@@ -24,5 +30,5 @@
   "name": "Close Duplicate Tabs",
   "description": "Shows count of duplicate tabs and close them quickly",
   "permissions": ["storage", "cookies", "tabs"],
-  "version": "1.0.16"
+  "version": "1.0.17"
 }

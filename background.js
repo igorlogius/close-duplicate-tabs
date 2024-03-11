@@ -5,6 +5,8 @@ let ignorehighlighted = false;
 
 let highlightedTabs = [];
 
+let manually_ignored_tabIds = new Set();
+
 async function getFromStorage(type, id, fallback) {
   let tmp = await browser.storage.local.get(id);
   return typeof tmp[id] === type ? tmp[id] : fallback;
@@ -43,7 +45,7 @@ function getDups() {
   let done = [];
 
   for (const [tabId, t0] of tabdata) {
-    if (done.includes(tabId)) {
+    if (done.includes(tabId) || manually_ignored_tabIds.has(tabId)) {
       continue;
     } else {
       done.push(tabId);
@@ -59,7 +61,8 @@ function getDups() {
         vtabId !== tabId &&
         t0.url === v.url &&
         t0.cs === v.cs &&
-        t0.status !== "loading"
+        t0.status !== "loading" &&
+        !manually_ignored_tabIds.has(vtabId)
       ) {
         t0_dups.push(v);
       }
@@ -188,6 +191,9 @@ browser.tabs.onCreated.addListener((t) => {
 
 // remove tab from cache
 browser.tabs.onRemoved.addListener((tabId) => {
+  if (manually_ignored_tabIds.has(tabId)) {
+    manually_ignored_tabIds.delete(tabId);
+  }
   if (tabdata.has(tabId)) {
     tabdata.delete(tabId);
   }
@@ -223,3 +229,20 @@ function handleHighlighted(highlightInfo) {
   delayed_updateBA();
 }
 browser.tabs.onHighlighted.addListener(handleHighlighted);
+
+browser.commands.onCommand.addListener(async (command) => {
+  if (command == "ignore-set") {
+    const htabIds = (
+      await browser.tabs.query({ currentWindow: true, highlighted: true })
+    ).map((t) => t.id);
+    for (const htid of htabIds) {
+      if (!manually_ignored_tabIds.has(htid)) {
+        manually_ignored_tabIds.add(htid);
+      }
+    }
+    delayed_updateBA();
+  } else if (command == "ignore-clear") {
+    manually_ignored_tabIds.clear();
+    delayed_updateBA();
+  }
+});

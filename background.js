@@ -200,7 +200,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
   delayed_updateBA();
 });
 
-// tigger deletion
+// trigger deletion
 browser.browserAction.onClicked.addListener((/*tab, info*/) => {
   // clear action is only available when last update is done
   // not strictly necessary, since we disable the button ... but it doesnt hurt

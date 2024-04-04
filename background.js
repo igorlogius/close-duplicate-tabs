@@ -44,6 +44,10 @@ function getDups() {
   const dups = new Map();
   let done = [];
 
+  if (ignorehighlighted) {
+    done = highlightedTabs;
+  }
+
   for (const [tabId, t0] of tabdata) {
     if (done.includes(tabId) || manually_ignored_tabIds.has(tabId)) {
       continue;
@@ -62,7 +66,8 @@ function getDups() {
         t0.url === v.url &&
         t0.cs === v.cs &&
         t0.status !== "loading" &&
-        !manually_ignored_tabIds.has(vtabId)
+        !manually_ignored_tabIds.has(vtabId) &&
+        !highlightedTabs.includes(vtabId)
       ) {
         t0_dups.push(v);
       }
@@ -91,6 +96,7 @@ function getDups() {
 
   // remove active Tab
 
+  /*
   if (ignorehighlighted) {
     for (const htid of highlightedTabs) {
       if (toClose.has(htid)) {
@@ -98,6 +104,7 @@ function getDups() {
       }
     }
   }
+    */
 
   return [...toClose];
 }
@@ -221,12 +228,14 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 browser.storage.onChanged.addListener(syncMemory);
 
 function handleHighlighted(highlightInfo) {
-  if (Array.isArray(highlightInfo.tabIds)) {
-    highlightedTabs = highlightInfo.tabIds;
-  } else {
-    highlightedTabs = [];
+  if (ignorehighlighted) {
+    if (Array.isArray(highlightInfo.tabIds)) {
+      highlightedTabs = highlightInfo.tabIds;
+    } else {
+      highlightedTabs = [];
+    }
+    delayed_updateBA();
   }
-  delayed_updateBA();
 }
 browser.tabs.onHighlighted.addListener(handleHighlighted);
 
@@ -246,3 +255,12 @@ browser.commands.onCommand.addListener(async (command) => {
     delayed_updateBA();
   }
 });
+
+function handleActivated(activeInfo) {
+  if (ignorehighlighted) {
+    if (!highlightedTabs.includes(activeInfo.tabId)) {
+      highlightedTabs.push(activeInfo.tabId);
+    }
+  }
+}
+browser.tabs.onActivated.addListener(handleActivated);

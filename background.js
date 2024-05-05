@@ -152,7 +152,7 @@ async function syncMemory() {
     tabdata.set(t.id, {
       id: t.id,
       status: t.status,
-      url: t.url,
+      url: t.url.endsWith("#") ? t.url.slice(0, -1) : t.url,
       cs: t.cookieStoreId,
       ts: byCreated ? Date.now() : t.lastAccessed,
     });
@@ -173,8 +173,10 @@ browser.tabs.onUpdated.addListener(
         tmp.id = t.id;
       }
       if (typeof changeInfo.url === "string") {
-        tmp.url = changeInfo.url;
-        tmp.cs = t.cookieStoreId;
+        (tmp.url = changeInfo.url.endsWith("#")
+          ? changeInfo.url.slice(0, -1)
+          : changeInfo.url),
+          (tmp.cs = t.cookieStoreId);
         tmp.id = t.id;
       }
       tabdata.set(t.id, tmp);
@@ -188,7 +190,7 @@ browser.tabs.onUpdated.addListener(
 browser.tabs.onCreated.addListener((t) => {
   tabdata.set(t.id, {
     id: t.id,
-    url: t.url,
+    url: t.url.endsWith("#") ? t.url.slice(0, -1) : t.url,
     cs: t.cookieStoreId,
     ts: Date.now(),
     status: "created",

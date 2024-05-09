@@ -3,13 +3,17 @@
 let byCreated = false;
 let ignorehighlighted = false;
 
-let highlightedTabs = [];
-
 let manually_ignored_tabIds = new Set();
 
 async function getFromStorage(type, id, fallback) {
   let tmp = await browser.storage.local.get(id);
   return typeof tmp[id] === type ? tmp[id] : fallback;
+}
+
+async function setToStorage(id, value) {
+  let obj = {};
+  obj[id] = value;
+  return browser.storage.local.set(obj);
 }
 
 const tabdata = new Map();
@@ -44,10 +48,6 @@ function getDups() {
   const dups = new Map();
   let done = [];
 
-  if (ignorehighlighted) {
-    done = highlightedTabs;
-  }
-
   for (const [tabId, t0] of tabdata) {
     if (done.includes(tabId) || manually_ignored_tabIds.has(tabId)) {
       continue;
@@ -66,8 +66,7 @@ function getDups() {
         t0.url === v.url &&
         t0.cs === v.cs &&
         t0.status !== "loading" &&
-        !manually_ignored_tabIds.has(vtabId) &&
-        !highlightedTabs.includes(vtabId)
+        !manually_ignored_tabIds.has(vtabId)
       ) {
         t0_dups.push(v);
       }
@@ -96,22 +95,21 @@ function getDups() {
 
   // remove active Tab
 
-  /*
-  if (ignorehighlighted) {
-    for (const htid of highlightedTabs) {
-      if (toClose.has(htid)) {
-        toClose.delete(htid);
-      }
-    }
-  }
-    */
-
   return [...toClose];
 }
 
 // delete duplicates
-function delDups() {
+async function delDups() {
   if (dupTabIds.length > 0) {
+    let activeTabId = (
+      await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+    )[0].id;
+    dupTabIds = dupTabIds.filter((el) => {
+      return el !== activeTabId;
+    });
     browser.tabs.remove(dupTabIds);
   }
 }
@@ -130,11 +128,17 @@ function updateBA() {
 
 async function syncMemory() {
   byCreated = await getFromStorage("boolean", "keepoldest", false);
-  ignorehighlighted = await getFromStorage(
-    "boolean",
-    "ignorehighlighted",
-    false
-  );
+
+  browser.menus.create({
+    title: "Keep older tabs",
+    contexts: ["browser_action"],
+    type: "checkbox",
+    checked: byCreated,
+    onclick: (info) => {
+      setToStorage("keepoldest", info.checked);
+      byCreated = info.checked;
+    },
+  });
 }
 
 // init browserAction, load/sync local vars + populate tabdata cache
@@ -210,12 +214,12 @@ browser.tabs.onRemoved.addListener((tabId) => {
 });
 
 // trigger deletion
-browser.browserAction.onClicked.addListener((/*tab, info*/) => {
+browser.browserAction.onClicked.addListener(async (/*tab, info*/) => {
   // clear action is only available when last update is done
   // not strictly necessary, since we disable the button ... but it doesnt hurt
   if (delayed_updateBA_timerId === null) {
-    delDups();
-    browser.browserAction.setBadgeText({ text: "0" });
+    await delDups();
+    delayed_updateBA();
   }
 });
 
@@ -228,18 +232,6 @@ browser.tabs.onActivated.addListener((activeInfo) => {
 });
 
 browser.storage.onChanged.addListener(syncMemory);
-
-function handleHighlighted(highlightInfo) {
-  if (ignorehighlighted) {
-    if (Array.isArray(highlightInfo.tabIds)) {
-      highlightedTabs = highlightInfo.tabIds;
-    } else {
-      highlightedTabs = [];
-    }
-    delayed_updateBA();
-  }
-}
-browser.tabs.onHighlighted.addListener(handleHighlighted);
 
 browser.commands.onCommand.addListener(async (command) => {
   if (command == "ignore-set") {
@@ -257,12 +249,3 @@ browser.commands.onCommand.addListener(async (command) => {
     delayed_updateBA();
   }
 });
-
-function handleActivated(activeInfo) {
-  if (ignorehighlighted) {
-    if (!highlightedTabs.includes(activeInfo.tabId)) {
-      highlightedTabs.push(activeInfo.tabId);
-    }
-  }
-}
-browser.tabs.onActivated.addListener(handleActivated);

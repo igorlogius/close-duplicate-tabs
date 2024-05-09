@@ -2,6 +2,7 @@
 
 let byCreated = false;
 let ignorehighlighted = false;
+let activeTabId = -1;
 
 let manually_ignored_tabIds = new Set();
 
@@ -49,10 +50,8 @@ function getDups() {
   let done = [];
 
   for (const [tabId, t0] of tabdata) {
-    if (done.includes(tabId) || manually_ignored_tabIds.has(tabId)) {
+    if (done.includes(tabId)) {
       continue;
-    } else {
-      done.push(tabId);
     }
 
     if (!dups.has(t0.cs + t0.url)) {
@@ -62,13 +61,13 @@ function getDups() {
 
     for (const [vtabId, v] of tabdata) {
       if (
-        vtabId !== tabId &&
+        //vtabId !== tabId &&
         t0.url === v.url &&
         t0.cs === v.cs &&
-        t0.status !== "loading" &&
-        !manually_ignored_tabIds.has(vtabId)
+        t0.status !== "loading"
       ) {
         t0_dups.push(v);
+        done.push(vtabId);
       }
     }
 
@@ -76,20 +75,25 @@ function getDups() {
       t0_dups = t0_dups
         .sort((av, bv) => {
           if (byCreated) {
+            if (bv.id == activeTabId) {
+              return 1;
+            }
             return av.ts - bv.ts;
+          }
+          if (av.id == activeTabId) {
+            return -1;
           }
           return bv.ts - av.ts;
         })
         .map((e) => e.id);
-
-      done = done.concat(t0_dups);
     }
     dups.set(t0.cs + t0.url, t0_dups);
   }
 
   let toClose = [];
-  for (const [, v] of dups) {
-    toClose = toClose.concat(v);
+  for (const [a, v] of dups) {
+    //console.debug(a, v);
+    toClose = toClose.concat(v.slice(1));
   }
   toClose = new Set(toClose);
 
@@ -101,14 +105,16 @@ function getDups() {
 // delete duplicates
 async function delDups() {
   if (dupTabIds.length > 0) {
+    /*
     let activeTabId = (
       await browser.tabs.query({
         active: true,
         currentWindow: true,
       })
     )[0].id;
+    */
     dupTabIds = dupTabIds.filter((el) => {
-      return el !== activeTabId;
+      return el !== activeTabId && !manually_ignored_tabIds.has(el);
     });
     browser.tabs.remove(dupTabIds);
   }
@@ -160,6 +166,7 @@ async function syncMemory() {
     onclick: (info) => {
       setToStorage("keepoldest", info.checked);
       byCreated = info.checked;
+      delayed_updateBA();
     },
   });
 })();
@@ -224,11 +231,13 @@ browser.browserAction.onClicked.addListener(async (/*tab, info*/) => {
 });
 
 browser.tabs.onActivated.addListener((activeInfo) => {
+  activeTabId = activeInfo.tabId;
   if (!byCreated && tabdata.has(activeInfo.tabId)) {
     let tmp = tabdata.get(activeInfo.tabId);
     tmp.ts = Date.now();
     tabdata.set(activeInfo.tabId, tmp);
   }
+  delayed_updateBA();
 });
 
 browser.storage.onChanged.addListener(syncMemory);

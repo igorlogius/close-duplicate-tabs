@@ -128,17 +128,6 @@ function updateBA() {
 
 async function syncMemory() {
   byCreated = await getFromStorage("boolean", "keepoldest", false);
-
-  browser.menus.create({
-    title: "Keep older tabs",
-    contexts: ["browser_action"],
-    type: "checkbox",
-    checked: byCreated,
-    onclick: (info) => {
-      setToStorage("keepoldest", info.checked);
-      byCreated = info.checked;
-    },
-  });
 }
 
 // init browserAction, load/sync local vars + populate tabdata cache
@@ -162,6 +151,17 @@ async function syncMemory() {
     });
   });
   delayed_updateBA();
+
+  browser.menus.create({
+    title: "Keep older tabs",
+    contexts: ["browser_action"],
+    type: "checkbox",
+    checked: byCreated,
+    onclick: (info) => {
+      setToStorage("keepoldest", info.checked);
+      byCreated = info.checked;
+    },
+  });
 })();
 
 // register listeners

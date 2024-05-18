@@ -1,6 +1,8 @@
 Shows the total amount of duplicate tabs and allows to quickly and easily close
 them - Same URLs in different containers are not treated as duplicates.
 
+[![](https://raw.githubusercontent.com/igorlogius/igorlogius/main/geFxAddon.png)](https://addons.mozilla.org/firefox/addon/close-duplicate-tabs/)
+
 ### [Click here to report a bug, make a suggestion or ask a question](https://github.com/igorlogius/igorlogius/issues/new/choose)
 
 <b>Short Demo Video:</b>

@@ -180,32 +180,51 @@ browser.tabs.onUpdated.addListener(
       let tmp = tabdata.get(t.id);
       if (typeof changeInfo.status === "string") {
         tmp.status = changeInfo.status;
-        tmp.cs = t.cookieStoreId;
-        tmp.id = t.id;
       }
       if (typeof changeInfo.url === "string") {
-        (tmp.url = changeInfo.url.endsWith("#")
-          ? changeInfo.url.slice(0, -1)
-          : changeInfo.url),
-          (tmp.cs = t.cookieStoreId);
-        tmp.id = t.id;
+        if (/^https?:/.test(changeInfo.url)) {
+          try {
+            const urlobj = new URL(changeInfo.url);
+            if (urlobj.origin !== "null") {
+              tmp.url = urlobj.origin + urlobj.pathname;
+            }
+          } catch (e) {
+            // noop when URL() fails
+          }
+        }
       }
+      tmp.cs = t.cookieStoreId;
+      tmp.id = t.id;
       tabdata.set(t.id, tmp);
       delayed_updateBA();
     }
   },
-  { properties: ["status", "url"] }
+  { properties: ["status", "url"] },
 );
 
 // update cache
 browser.tabs.onCreated.addListener((t) => {
-  tabdata.set(t.id, {
+  const now = Date.now();
+  let tmp = {
     id: t.id,
-    url: t.url.endsWith("#") ? t.url.slice(0, -1) : t.url,
     cs: t.cookieStoreId,
-    ts: Date.now(),
+    ts: now,
     status: "created",
-  });
+    url: "" + now, // set to something unique incase no url is available yet and let onUpdated take care of it later
+  };
+
+  // try to set the URL ... but it might not be available so ... yeah
+  if (/^https?:/.test(t.url)) {
+    try {
+      const urlobj = new URL(t.url);
+      if (urlobj.origin !== "null") {
+        tmp.url = urlobj.origin + urlobj.pathname;
+      }
+    } catch (e) {
+      // noop when URL() fails
+    }
+  }
+  tabdata.set(tmp.id, tmp);
   delayed_updateBA();
 });
 

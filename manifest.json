@@ -23,5 +23,5 @@
   "name": "Close Duplicate Tabs",
   "description": "Shows the total amount of duplicate tabs and allows to quickly and easily close them - Same URLs in different containers are not treated as duplicates",
   "permissions": ["storage", "cookies", "tabs", "menus"],
-  "version": "1.0.23"
+  "version": "1.0.24"
 }

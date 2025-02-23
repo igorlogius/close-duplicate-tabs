@@ -186,7 +186,7 @@ browser.tabs.onUpdated.addListener(
           try {
             const urlobj = new URL(changeInfo.url);
             if (urlobj.origin !== "null") {
-              tmp.url = urlobj.origin + urlobj.pathname;
+              tmp.url = urlobj.origin + urlobj.pathname + urlobj.search;
             }
           } catch (e) {
             // noop when URL() fails
@@ -218,7 +218,7 @@ browser.tabs.onCreated.addListener((t) => {
     try {
       const urlobj = new URL(t.url);
       if (urlobj.origin !== "null") {
-        tmp.url = urlobj.origin + urlobj.pathname;
+        tmp.url = urlobj.origin + urlobj.pathname + urlobj.search;
       }
     } catch (e) {
       // noop when URL() fails

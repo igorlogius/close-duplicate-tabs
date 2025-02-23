@@ -171,6 +171,17 @@ async function syncMemory() {
   });
 })();
 
+function serializeSearchParams(searchParams) {
+  // Sort the key/value pairs
+  searchParams.sort();
+  let out = searchParams.toString();
+
+  if (out !== "") {
+    out = "?" + out;
+  }
+  return out;
+}
+
 // register listeners
 
 // update cache
@@ -186,15 +197,20 @@ browser.tabs.onUpdated.addListener(
           try {
             const urlobj = new URL(changeInfo.url);
             if (urlobj.origin !== "null") {
-              tmp.url = urlobj.origin + urlobj.pathname + urlobj.search;
+              tmp.url =
+                urlobj.origin +
+                urlobj.pathname +
+                serializeSearchParams(urlobj.searchParams);
             }
           } catch (e) {
             // noop when URL() fails
+            console.error(changeInfo.url, e);
           }
         }
       }
       tmp.cs = t.cookieStoreId;
       tmp.id = t.id;
+      //console.debug(tmp);
       tabdata.set(t.id, tmp);
       delayed_updateBA();
     }
@@ -218,12 +234,16 @@ browser.tabs.onCreated.addListener((t) => {
     try {
       const urlobj = new URL(t.url);
       if (urlobj.origin !== "null") {
-        tmp.url = urlobj.origin + urlobj.pathname + urlobj.search;
+        tmp.url =
+          urlobj.origin +
+          urlobj.pathname +
+          serializeSearchParams(urlobj.searchParams);
       }
     } catch (e) {
       // noop when URL() fails
     }
   }
+  //console.debug(tmp);
   tabdata.set(tmp.id, tmp);
   delayed_updateBA();
 });

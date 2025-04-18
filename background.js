@@ -34,6 +34,7 @@ async function delayed_updateBA(delay = 700) {
       hidden: false,
       pinned: false,
       status: "loading",
+      discarded: false,
     });
     if (loading_tabs.length === 0) {
       updateBA();
@@ -148,10 +149,19 @@ async function syncMemory() {
       pinned: false,
     })
   ).forEach((t) => {
+    let tab_url = t.url;
+    const urlobj = new URL(t.url);
+    if (urlobj.origin !== "null") {
+      tab_url =
+        urlobj.origin +
+        urlobj.pathname +
+        serializeSearchParams(urlobj.searchParams);
+    }
+
     tabdata.set(t.id, {
       id: t.id,
       status: t.status,
-      url: t.url.endsWith("#") ? t.url.slice(0, -1) : t.url,
+      url: tab_url,
       cs: t.cookieStoreId,
       ts: byCreated ? Date.now() : t.lastAccessed,
     });
@@ -189,6 +199,11 @@ browser.tabs.onUpdated.addListener(
   (tabId, changeInfo, t) => {
     if (tabdata.has(t.id)) {
       let tmp = tabdata.get(t.id);
+      if (changeInfo.discarded === true) {
+        // so the tab got discarded, which basically makes the loading complete
+        //  so we assume the current url
+        tmp.status = "complete";
+      }
       if (typeof changeInfo.status === "string") {
         tmp.status = changeInfo.status;
       }
@@ -215,7 +230,7 @@ browser.tabs.onUpdated.addListener(
       delayed_updateBA();
     }
   },
-  { properties: ["status", "url"] },
+  { properties: ["status", "url", "discarded"] },
 );
 
 // update cache
@@ -284,7 +299,12 @@ browser.storage.onChanged.addListener(syncMemory);
 browser.commands.onCommand.addListener(async (command) => {
   if (command == "ignore-set") {
     const htabIds = (
-      await browser.tabs.query({ currentWindow: true, highlighted: true })
+      await browser.tabs.query({
+        hidden: false,
+        pinned: false,
+        currentWindow: true,
+        highlighted: true,
+      })
     ).map((t) => t.id);
     for (const htid of htabIds) {
       if (!manually_ignored_tabIds.has(htid)) {
